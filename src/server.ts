@@ -1,11 +1,10 @@
+// src/server.ts
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 
-// Extend WebSocket type to include isAlive property
-declare module "ws" {
-  interface WebSocket {
-    isAlive?: boolean;
-  }
+// ✅ Safely extend the WebSocket instance type (works even on Railway)
+interface ExtWebSocket extends WebSocket {
+  isAlive?: boolean;
 }
 
 const PORT = process.env.PORT || 3500;
@@ -23,11 +22,11 @@ const wss = new WebSocketServer({ server });
 let count = 0;
 
 // --- Heartbeat / keep-alive system ---
-function heartbeat(this: any) {
+function heartbeat(this: ExtWebSocket) {
   this.isAlive = true;
 }
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws: ExtWebSocket) => {
   console.log("Client connected");
 
   ws.isAlive = true;
@@ -44,9 +43,10 @@ wss.on("connection", (ws) => {
 // --- Broadcast current count to all connected clients ---
 function broadcastCount() {
   const message = JSON.stringify({ count });
-  wss.clients.forEach((client: any) => {
-    if (client.readyState === client.OPEN) {
-      client.send(message);
+  wss.clients.forEach((client) => {
+    const socket = client as ExtWebSocket;
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(message);
     }
   });
 }
@@ -60,7 +60,8 @@ const countInterval = setInterval(() => {
 
 // --- Ping clients every 30 seconds to remove dead ones ---
 const heartbeatInterval = setInterval(() => {
-  wss.clients.forEach((ws: any) => {
+  wss.clients.forEach((client) => {
+    const ws = client as ExtWebSocket;
     if (ws.isAlive === false) {
       console.log("Terminating dead connection");
       return ws.terminate();
@@ -77,7 +78,9 @@ function shutdown() {
   clearInterval(heartbeatInterval);
 
   // Close all client connections
-  wss.clients.forEach((ws) => ws.close());
+  wss.clients.forEach((client) => {
+    (client as ExtWebSocket).close();
+  });
   wss.close(() => {
     server.close(() => {
       console.log("Server closed cleanly.");
