@@ -1,0 +1,17 @@
+# Ignore local dev artifacts
+node_modules
+npm-debug.log
+yarn-error.log
+dist
+build
+out
+
+# Ignore config & editor junk
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Ignore env files (Railway uses its own Environment Variables)
+.env
+.env.local

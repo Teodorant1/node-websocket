@@ -14,7 +14,7 @@
     "start": "node dist/server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Paloki",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^24.7.0",
