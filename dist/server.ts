@@ -1,0 +1,43 @@
+// src/server.ts
+import { createServer } from "http";
+import { WebSocketServer } from "ws";
+const PORT = process.env.PORT || 3500;
+// Create HTTP server (you can later add REST endpoints if needed)
+const server = createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("WebSocket server running\n");
+});
+// Create WebSocket server attached to the HTTP server
+const wss = new WebSocketServer({ server });
+let count = 0;
+let cycles = 0;
+// Broadcast function
+function broadcastCount() {
+  const message = JSON.stringify({ count });
+  wss.clients.forEach((client) => {
+    if (client.readyState === client.OPEN) {
+      client.send(message);
+    }
+  });
+}
+// Increment counter every second
+setInterval(() => {
+  count++;
+  if (count > 100000) {
+    count = 0;
+    cycles++;
+    console.log(`Completed ${cycles} cycles of 100,000`);
+  }
+  broadcastCount();
+}, 1000);
+// Handle new connections
+wss.on("connection", (ws) => {
+  console.log("Client connected");
+  // Send the current count immediately
+  ws.send(JSON.stringify({ count, cycles }));
+  ws.on("close", () => console.log("Client disconnected"));
+});
+// Start the HTTP server
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
