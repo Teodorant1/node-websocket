@@ -20,6 +20,7 @@ const wss = new WebSocketServer({ server });
 
 // --- Global counter example ---
 let count = 0;
+let cycleCount = 0;
 
 // --- Heartbeat / keep-alive system ---
 function heartbeat(this: ExtWebSocket) {
@@ -42,7 +43,7 @@ wss.on("connection", (ws: ExtWebSocket) => {
 
 // --- Broadcast current count to all connected clients ---
 function broadcastCount() {
-  const message = JSON.stringify({ count });
+  const message = JSON.stringify({ count, cycleCount });
   wss.clients.forEach((client) => {
     const socket = client as ExtWebSocket;
     if (socket.readyState === WebSocket.OPEN) {
@@ -54,7 +55,10 @@ function broadcastCount() {
 // --- Increment counter every second ---
 const countInterval = setInterval(() => {
   count++;
-  if (count > 100_000) count = 0;
+  if (count > 100_000) {
+    count = 0;
+    cycleCount++;
+  }
   broadcastCount();
 }, 1000);
 
